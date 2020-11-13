@@ -3,6 +3,9 @@ import App from './App.vue'
 import router from './router'
 import vuetify from './plugins/vuetify'
 import axios from 'axios'
+// import VCharts from 'v-charts'
+// Vue.use(VCharts)
+
 
 Vue.prototype.$http = axios.create({
   baseURL: 'http://123.56.2.196:8080/kexie',

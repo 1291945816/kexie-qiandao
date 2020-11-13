@@ -383,6 +383,19 @@ export default {
         this.signOutDialog.success = false
         this.signOutDialog.msg.err = '超时错误'
       }
+    },
+    'inRomList.items'() {
+      //check me inRoom
+      var inRoom = this.inRomList.items.some(item => {
+        return item.userid.toString() === localStorage.getItem('id')
+      })
+      if (inRoom) {
+        var id = localStorage.getItem('id')
+        var name = localStorage.getItem('name')
+        store.setLogin({ id, name })
+      } else {
+        store.setLogOut()
+      }
     }
   },
   mounted() {
