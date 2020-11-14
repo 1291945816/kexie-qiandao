@@ -1,420 +1,271 @@
 <template>
-  <v-container>
-    <v-row>
-      <v-col cols="12" v-if="allDisabled">
-        <v-alert type="warning">现在不是上班时间</v-alert>
-      </v-col>
+  <div>
+    <v-card
+      max-width="1024"
+      class="mx-auto"
+    >
+      <v-container fluid>
+        <!-- 时间警告 -->
+        <v-alert
+          v-if="!timeValid"
+          type="warning"
+        >现在不是打工时间</v-alert>
 
-      <v-col cols="12" v-if="shareState.student.isLogin">
-        <v-alert type="success" dense :icon="mdiCheckCircle">
-          <h3>已签到</h3>
-          <p class="mb-0">学号：{{shareState.student.id}}</p>
-          <p class="mb-0">姓名：{{shareState.student.name}}</p>
+        <!-- 显示签到信息 -->
+        <v-alert
+          v-if="$store.state.isLogin"
+          type="success"
+        >
+          <div>{{ $store.state.userId }} {{ $store.state.userName }}</div>
+          <div>第{{ $store.state.week }}周 总时长：{{$store.state.totalTime}}小时</div>
         </v-alert>
-      </v-col>
 
-      <v-col cols="12">
-        <v-text-field
-          :rules="idError"
-          label="输入学号"
-          ref="inputId"
-          hide-details="auto"
-          :disabled="inputIdDisabled"
-          v-model="inputId"
-        ></v-text-field>
-      </v-col>
+        <!-- 显示签退信息 -->
+        <v-alert
+          v-if="$store.state.isLogout"
+          type="info"
+        >
+          <div>{{ $store.state.userId }} {{ $store.state.userName }}</div>
+          <div>本次签到时长：{{ $store.state.accumulatedTime }}</div>
+          <div>第{{ $store.state.week }}周 总时长：{{$store.state.totalTime}}小时</div>
+        </v-alert>
 
-      <v-col cols="12">
-        <v-btn
-          class="mr-3"
-          color="primary"
-          rounded
-          :disabled="signUpDisabled"
-          @click.stop="signUp"
-        >签到</v-btn>
-        <v-btn rounded outlined color="gray" :disabled="signOutDisabled" @click.stop="signOut">签退</v-btn>
-        <v-dialog v-model="signUpDialog.show" width="500">
-          <v-card color="primary" v-if="signUpDialog.loading">
-            <v-card-text>
-              Please stand by
-              <v-progress-linear indeterminate color="white" class="mb-0"></v-progress-linear>
-            </v-card-text>
-          </v-card>
-          <v-card v-else-if="signUpDialog.success">
-            <v-card-title class="headline light-green">签到成功</v-card-title>
-            <v-card-text>
-              <p class="mt-5 mb-0">学号：{{signUpDialog.msg.id}}</p>
-              <p class="mb-0">姓名：{{signUpDialog.msg.name}}</p>
-              <p class="mb-0">签到开始时间：{{signUpDialog.msg.currentTime}}</p>
-              <p class="mb-0">本周签到总时长：{{signUpDialog.msg.allTime}}</p>
-            </v-card-text>
-            <v-divider></v-divider>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" text @click="signUpDialog.show = false">确认</v-btn>
-            </v-card-actions>
-          </v-card>
-          <v-card v-else>
-            <v-card-title class="headline red">签到失败</v-card-title>
-            <v-card-text>
-              <p class="mb-0 mt-5">{{signUpDialog.msg.err}}</p>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" text @click="signUpDialog.show = false">确认</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <v-dialog v-model="signOutDialog.show" width="500">
-          <v-card color="primary" v-if="signOutDialog.loading">
-            <v-card-text>
-              Please stand by
-              <v-progress-linear indeterminate color="white" class="mb-0"></v-progress-linear>
-            </v-card-text>
-          </v-card>
-          <v-card v-else-if="signOutDialog.success">
-            <v-card-title class="headline light-green">签退成功</v-card-title>
-            <v-card-text>
-              <p class="mt-5 mb-0">学号：{{signOutDialog.msg.id}}</p>
-              <p class="mb-0">姓名：{{signOutDialog.msg.name}}</p>
-              <p class="mb-0">本次签到时长：{{signOutDialog.msg.currentTime}}h</p>
-              <p class="mb-0">签到总时长：{{signOutDialog.msg.allTime}}h</p>
-            </v-card-text>
-            <v-divider></v-divider>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" text @click="signOutDialog.show = false">确认</v-btn>
-            </v-card-actions>
-          </v-card>
-          <v-card v-else>
-            <v-card-title class="headline red">签退失败</v-card-title>
-            <v-card-text>
-              <p class="mt-5 mb-0">{{signOutDialog.msg.err}}</p>
-            </v-card-text>
-            <v-divider></v-divider>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" text @click="signOutDialog.show = false">确认</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-      </v-col>
-    </v-row>
+        <v-form>
+          <v-text-field
+            v-model="userId"
+            :disabled="!timeValid"
+            label="输入学号"
+          ></v-text-field>
+          <v-btn
+            class="mr-4"
+            :disabled="!timeValid"
+            @click.stop="signIn"
+          >签到</v-btn>
+          <v-btn
+            class="mr-4"
+            :disabled="!timeValid"
+            @click.stop="signOut"
+          >签退</v-btn>
 
-    <v-row v-if="shareState.student.isLogin">
-      <v-col cols="12">
-        <v-card>
-          <v-card-title>
-            当前在教室的人数：{{inRomList.items.length}}
-            <v-spacer></v-spacer>
-            <v-text-field
-              v-model="inRomList.search"
-              :append-icon="mdiMagnify"
-              label="Search"
-              single-line
-              hide-details
-            ></v-text-field>
-          </v-card-title>
-          <v-data-table
-            :headers="inRomList.headers"
-            :items="inRomList.items"
-            :search="inRomList.search"
-            mobile-breakpoint="0"
-            item-key="userid"
-            :items-per-page="5"
-            calculate-widths
+          <!-- loading对话框 -->
+          <v-dialog
+            v-model="isLoding"
+            max-width="300"
+            persistent
           >
-            <template v-slot:item.username="{item}">
-              <v-chip color="success">{{ item.username }}</v-chip>
-            </template>
-            <template v-slot:item.actions="{item}">
-              <v-btn small @click.stop="handleReport(item)">举报</v-btn>
-            </template>
-          </v-data-table>
-        </v-card>
-        <v-dialog v-model="reportDialog.show" width="500">
-          <v-card>
-            <v-card-title class="headline light-green">确认举报</v-card-title>
-            <v-card-text>
-              <p class="mb-0 mt-5">
-                学号：{{reportDialog.msg.id}}
-                <br />
-                姓名：{{reportDialog.msg.name}}
-              </p>
-            </v-card-text>
-            <v-divider></v-divider>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="grey" text @click="cancelReport">取消</v-btn>
-              <v-btn color="primary" text @click="confirmReport">确认</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-      </v-col>
-    </v-row>
-  </v-container>
+            <v-card
+              color="primary"
+              dark
+            >
+              <v-card-text>
+                请稍等
+                <v-progress-linear
+                  indeterminate
+                  color="white"
+                  class="mb-0"
+                ></v-progress-linear>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
+        </v-form>
+      </v-container>
+    </v-card>
+
+    <!-- 当前在线的人列表 -->
+    <v-card
+      class="my-4 mx-auto"
+      max-width="1024"
+    >
+      <v-container fluid>
+        <v-text-field
+          outlined
+          dense
+          v-model="keyword"
+          :disabled="!timeValid"
+          @keyup="filter"
+          label="搜索"
+        ></v-text-field>
+        <v-simple-table>
+          <template #default>
+            <thead>
+              <tr>
+                <th>学号</th>
+                <th>姓名</th>
+                <th>部门</th>
+                <th>地点</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in filtedTableDatd"
+                :key="item.userId"
+                :class="{ warning: item.status }"
+              >
+                <td>{{ item.userId }}</td>
+                <td>{{ item.userName }}</td>
+                <td>{{ item.userDept }}</td>
+                <td>{{ item.userLocation }}</td>
+                <td>
+                  <v-btn @click.stop="report(item.userId.toString(),$store.state.userId.toString())">举报</v-btn>
+                </td>
+              </tr>
+            </tbody>
+          </template>
+        </v-simple-table>
+      </v-container>
+    </v-card>
+
+  </div>
 </template>
 
 <script>
-import { mdiCheckCircle, mdiMagnify } from '@mdi/js'
-import store from '@/store/store.js'
 export default {
-  data: function() {
+  name: "Home",
+  data() {
     return {
-      mdiCheckCircle,
-      mdiMagnify,
-      inputId: '',
-      shareState: store.state,
-      allDisabled: true,
-      signUpDialog: {
-        loading: false,
-        show: false,
-        success: false,
-        msg: {
-          id: '',
-          name: '',
-          currentTime: '',
-          allTime: '',
-          err: ''
-        }
-      },
-      signOutDialog: {
-        loading: false,
-        show: false,
-        success: false,
-        msg: {
-          id: '',
-          name: '',
-          currentTime: 0,
-          allTime: 0,
-          err: ''
-        }
-      },
-      reportDialog: {
-        show: false,
-        msg: {
-          id: '',
-          name: ''
-        }
-      },
-      inRomList: {
-        search: '',
-        headers: [
-          {
-            text: '学号',
-            align: 'center',
-            sortable: false,
-            value: 'userid'
-          },
-          {
-            text: '姓名',
-            align: 'center',
-            sortable: false,
-            value: 'username',
-            class: 'data-table-td-mw100'
-          },
-          {
-            text: '部门',
-            align: 'center',
-            sortable: true,
-            value: 'dept',
-            class: 'data-table-td-mw100'
-          },
-          {
-            text: '地点',
-            align: 'center',
-            sortable: false,
-            value: 'location'
-          },
-          {
-            text: '操作',
-            align: 'center',
-            sortable: false,
-            value: 'actions'
-          }
-        ],
-        items: []
-      }
-    }
+      timeValid: true,
+      userId: "",
+      keyword: "",
+      isLoding: false,
+      tableData: [],
+      filtedTableDatd: [],
+    };
   },
   methods: {
-    checkTimeVaild() {
-      var currentTime = new Date()
-      var hours = currentTime.getHours()
-      var minutes = currentTime.getMinutes()
-      if (hours < 6 || (hours >= 23 && minutes >= 30)) {
-        return false
-      } else {
-        return true
-      }
-    },
-    signUp() {
-      //check valid
-      if (!this.$refs.inputId.validate(true)) return
-      //loading shows
-      this.signUpDialog.show = true
-      this.signUpDialog.loading = true
-      //send inputid
-      this.$http.post('signIn', { userId: this.inputId }).then(res => {
-        if (res.data.code === 200) {
-          this.signUpDialog.success = true
-          this.signUpDialog.loading = false
-
-          //set success msg
-          this.signUpDialog.msg.id = this.inputId
-          this.signUpDialog.msg.name = res.data.data.username
-          this.signUpDialog.msg.currentTime = new Date().toString()
-          this.signUpDialog.msg.allTime = res.data.allTime
-
-          //store set login
-          store.setLogin({ id: this.inputId, name: res.data.data.username })
-
-          //refresh list
-          this.getList()
-        } else {
-          this.signUpDialog.success = false
-          this.signUpDialog.loading = false
-          this.signUpDialog.msg.err = res.data.message
-        }
-      })
-    },
-    signOut() {
-      if (!this.$refs.inputId.validate(true)) return
-      this.signOutDialog.show = true
-      this.signOutDialog.loading = true
-
-      this.$http.post('/signOut', { userId: this.inputId }).then(res => {
-        if (res.data.code === 200) {
-          this.signOutDialog.loading = false
-          this.signOutDialog.success = true
-          this.signOutDialog.msg.id = this.inputId
-          this.signOutDialog.msg.name = res.data.data.username
-          this.signOutDialog.msg.allTime = res.data.allTime
-          this.signOutDialog.msg.currentTime = res.data.currentTime
-
-          //store set logout
-          store.setLogOut()
-
-          //refresh list
-          this.getList()
-        } else {
-          this.signOutDialog.loading = false
-          this.signOutDialog.msg.err = res.data.message
-        }
-      })
-    },
-    handleReport(item) {
-      //console.log(item);
-      this.reportDialog.msg.id = item.userid
-      this.reportDialog.msg.name = item.username
-      this.reportDialog.show = true
-    },
-    confirmReport() {
-      //console.log("submit");
-      //console.log("学号：" + this.reportDialog.msg.id);
-      this.reportDialog.show = false
+    signIn() {
+      localStorage.setItem("userId", this.userId); //本地保存学号
+      this.isLoding = true; //显示loading
       this.$http
-        .post('/Complaint', { userId: this.reportDialog.msg.id })
-        .then(res => {
-          if (res.data === 200) {
-            alert('举报成功')
-          }
-          this.getList()
-          //如果自己举报自己。。。
-          if (
-            this.inRomList.items.some(item => {
-              return item.userid.toString() === localStorage.getItem('id')
-            })
-          ) {
-            store.setLogOut()
+        .post("/api/user/signIn", { userId: this.userId })
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.getOnline(); //更新当前在线人的列表
+            this.$store.commit("setLogin", res.data.data); //vuex设置登录
+            //本地存储登录信息
+            localStorage.setItem("isLogin", "true");
+            localStorage.setItem("userId", res.data.data.userId);
+            localStorage.setItem("userName", res.data.data.userName);
+            localStorage.setItem("totalTime", res.data.data.totalTime);
+            localStorage.setItem("week", res.data.data.week);
+          } else {
+            alert(res.data.msg);
           }
         })
+        .catch((err) => {
+          alert(err);
+        })
+        .finally(() => {
+          this.isLoding = false; //关闭loading
+        });
     },
-    cancelReport() {
-      this.reportDialog.show = false
+    signOut() {
+      this.isLoding = true; //显示loading
+      this.$http
+        .post("/api/user/signOut", { userId: this.userId })
+        .then((res) => {
+          if (res.data.code === 0) {
+            //从列表中删除自己
+            let that = this;
+            let index = this.tableData.findIndex(function (person) {
+              return person.userId === that.userId;
+            });
+            this.tableData.splice(index, 1);
+            //vuex设置签退信息
+            this.$store.commit("setLogout", res.data.data);
+            //清楚本地的签到信息
+            localStorage.setItem("isLogin", "false");
+          } else {
+            alert(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          alert(err);
+        })
+        .finally(() => {
+          this.isLoding = false;
+        });
     },
-    getList() {
-      this.$http.get('/').then(res => {
-        this.inRomList.items = res.data
-      })
-    }
-  },
-  computed: {
-    inputIdDisabled() {
-      return this.allDisabled
+    getOnline() {
+      this.$http
+        .get("/api/record/online")
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.tableData = res.data.data;
+            this.filtedTableDatd = this.tableData;
+          } else {
+            alert(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          alert(err);
+        });
     },
-    signUpDisabled() {
-      return this.allDisabled || this.shareState.student.isLogin
-    },
-    signOutDisabled() {
-      return this.allDisabled
-    },
-    idError() {
-      const rules = []
-
-      const allowSpace = false
-      const required = true
-
-      if (!allowSpace) {
-        const rule = val => (val || '').indexOf(' ') < 0 || '不允许输入空格'
-        rules.push(rule)
+    filter() {
+      if (this.keyword === "") this.filtedTableDatd = this.tableData;
+      else {
+        this.filtedTableDatd = this.tableData.filter((item) => {
+          for (var key in item) {
+            let value = item[key].toString();
+            if (value.indexOf(this.keyword) !== -1) {
+              console.log(value);
+              return true;
+            }
+          }
+          return false;
+        });
       }
-
-      if (required) {
-        const rule = val => !!val || '不能留空'
-        rules.push(rule)
-      }
-      return rules
-    }
-  },
-  watch: {
-    'signUpDialog.loading'(val) {
-      if (!val) return
-      if (this.signUpDialog.loading) {
-        setTimeout(() => (this.signUpDialog.loading = false), 5000)
-        this.signUpDialog.success = false
-        this.signUpDialog.msg.err = '超时错误'
+    },
+    report(targetUserId, operatorUserId) {
+      if (operatorUserId === "") alert("请先输入自己的学号");
+      else if (targetUserId === operatorUserId) alert("你想举报自己？");
+      else {
+        this.isLoding = true;
+        this.$http
+          .post("/api/user/complaint", {
+            targetUserId,
+            operatorUserId,
+          })
+          .then((res) => {
+            if (res.data.code === 0) {
+              alert(res.data.msg);
+            } else {
+              alert(res.data.msg);
+            }
+          })
+          .catch((err) => {
+            alert(err);
+          })
+          .finally(() => {
+            this.isLoding = false;
+          });
       }
     },
-    'signOutDialog.loading'(val) {
-      if (!val) return
-      if (this.signOutDialog.loading) {
-        setTimeout(() => (this.signOutDialog.loading = false), 5000)
-        this.signOutDialog.success = false
-        this.signOutDialog.msg.err = '超时错误'
-      }
-    },
-    'inRomList.items'() {
-      //check me inRoom
-      var inRoom = this.inRomList.items.some(item => {
-        return item.userid.toString() === localStorage.getItem('id')
-      })
-      if (inRoom) {
-        var id = localStorage.getItem('id')
-        var name = localStorage.getItem('name')
-        store.setLogin({ id, name })
-      } else {
-        store.setLogOut()
-      }
-    }
   },
   mounted() {
-    if (this.checkTimeVaild()) {
-      this.allDisabled = false
-      //get id from localStorage
-      this.inputId = localStorage.getItem('id')
-      //check if login from localStorage
-      if (localStorage.getItem('isLogin') === 'true') {
-        var id = localStorage.getItem('id')
-        var name = localStorage.getItem('name')
-        store.setLogin({ id, name })
-      }
+    //获取当前在线的人
+    this.getOnline();
 
-      //get list
-      this.getList()
-    } else {
-      console.log('All disabled')
-    }
-  }
-}
+    //从localStorage获取学号
+    this.userId = localStorage.getItem("userId") || "";
+
+    //使用setInterval来周期性地计算当前的时间
+    setInterval(() => {
+      var time = new Date();
+      var hours = time.getHours();
+      var minutes = time.getHours();
+      if (hours < 6 || (hours >= 23 && minutes >= 30)) {
+        //如果早于早上六点，晚于晚上23:30则不在打工时间
+        this.timeValid = false;
+      }
+    }, 1000);
+  },
+};
 </script>
+
+<style scoped>
+th,
+td {
+  white-space: nowrap;
+}
+</style>
